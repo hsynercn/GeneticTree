@@ -14,16 +14,20 @@ public class PopulationController {
 
     private ArrayList<Strategy> pool = new ArrayList<Strategy>();//gene pool
 
-    private TextArea textArea = null;//print terminals
-    private TextArea textAreaResult = null;//print terminals
+    //selected for next generation
+    private int scopeSize;
 
-    private int scopeSize;//selected for next generation
 
-    private int integerLimit;//integer limit of the formulas
+    //integer limit of the formulas
+    private int integerLimit;
 
-    private int iterationLimit;//session number before end
 
-    private int maxDepth;//formula depth
+    //session number before end
+    private int iterationLimit;
+
+
+    //formula depth
+    private int maxDepth;
 
     private int mutationChange;
 
@@ -220,8 +224,6 @@ public class PopulationController {
 
         System.out.println("***********************SORTED:");
         this.printTest();
-        this.printOuterMonitor(-1);
-
 
         int j = 0;
 
@@ -283,7 +285,7 @@ public class PopulationController {
     }
 
     public void generatePool() {
-        //creates a N*N sized gene pool, NOT IN USE
+        //creates a N*N sized gene pool
         Random rand = new Random();
         this.scoreTable.clear();
         ArrayList<Strategy> newPool = new ArrayList<Strategy>();
@@ -299,11 +301,9 @@ public class PopulationController {
                 int mutateA = rand.nextInt(100);
                 int mutateB = rand.nextInt(100);
                 if (mutateA <= this.mutationChange) {
-                    System.out.println("HAIL MUTATION");
                     formulaUtility.mutation(safeCopyA.getStart(), this.tempStrategy.getVariableArrayList(), this.tempStrategy.getOperationsArrayList(), this.integerLimit);
                 }
                 if (mutateB <= this.mutationChange) {
-                    System.out.println("HAIL MUTATION");
                     formulaUtility.mutation(safeCopyB.getStart(), this.tempStrategy.getVariableArrayList(), this.tempStrategy.getOperationsArrayList(), this.integerLimit);
                 }
                 newPool.add(safeCopyB);
@@ -369,91 +369,21 @@ public class PopulationController {
         }
     }
 
-    private void printOuterMonitor(int iterationNumber) {
-
-        if (this.textArea != null) {
-            if (iterationNumber != -1)
-                this.textArea.append("\nGENERATION: " + iterationNumber + "\n");
-            else
-                this.textArea.append("\nSORTED:\n");
-            for (Strategy strategy : this.pool) {
-                this.textArea.append("DEPTH " + strategy.calculateMaxDepth() + " SCORE: " + this.scoreTable.get(strategy) + " " + formulaUtility.getFormulaAsString(strategy.getStart()) + "\n");
-            }
-        }
-    }
-
-    private void printOuterMonitorResults() {
-        if (this.textAreaResult != null) {
-            this.textAreaResult.append("RESULTS \n");
-            for (String key : this.populationRecorder.keySet()) {
-                this.textAreaResult.append(" COUNT: " + this.populationRecorder.get(key) + "  MATERIAL: " + key + "\n");
-            }
-        }
-    }
-
     public void printTest() {
         for (Strategy strategy : this.pool) {
-            System.out.println("DEPTH " + strategy.calculateMaxDepth() + " SCORE: " + this.scoreTable.get(strategy) + " " + formulaUtility.getFormulaAsString(strategy.getStart()));
+            System.out.println("DEPTH " + strategy.calculateMaxDepth() + " ,SCORE: " + this.scoreTable.get(strategy) + " ,GENETIC:" + formulaUtility.getFormulaAsString(strategy.getStart()));
         }
-    }
-
-    public void lifeCycle(int generationLimit) {
-        //WARNING: NOT IN USE
-        this.initialize();
-        for (int i = 0; i < generationLimit; i++) {
-            this.generatePool();
-            this.encounterCycle();
-            System.out.println("NEXT LIFE************************************");
-            this.printTest();
-            this.selectNextGeneration();
-
-        }
-        this.printTest();
-
-    }
-
-    public void lifeCyclePressurized(int generationLimit) {
-        //WARNING: NOT IN USE
-        this.initialize();
-        for (int i = 0; i < generationLimit; i++) {
-            this.generatePool();
-            this.encounterCycle();
-            System.out.println("NEXT LIFE************************************");
-            this.printTest();
-            this.selectNextGenerationWithPressure();
-
-        }
-        this.printTest();
-
-    }
-
-    public void lifeCycleRandomizedPressurized(int generationLimit) {
-        //WARNING: NOT IN USE
-        this.initialize();
-        for (int i = 0; i < generationLimit; i++) {
-            System.out.println("GENERATION NUMBER: " + i);
-            this.generatePool();
-            this.encounterCycle();
-
-            this.printTest();
-            this.selectNextGenerationRandomWithPressure();
-
-        }
-        this.printTest();
-
     }
 
     public void lifeCycleRandomizedPressurizedWide(int generationLimit) {
         //Most efficient algorithm of the controller, randomized start
         this.initialize();//random initialize
-        this.printOuterMonitor(0);
         for (int i = 0; i < generationLimit; i++) {
             System.out.println("GENERATION NUMBER: " + i);
             this.generatePoolWideCrossover();//wide crossover
             this.encounterCycle();
 
             this.printTest();
-            this.printOuterMonitor(i);
 
             //selection
             this.selectNextGenerationRandomWithPressure();
@@ -461,42 +391,21 @@ public class PopulationController {
 
         }
         this.printTest();
-        this.printOuterMonitor(generationLimit);
-        this.printOuterMonitorResults();
-
     }
 
     public void initiatedLifeCycleRandomizedPressurizedWide(int generationLimit, ArrayList<Strategy> prePool) {
         //Most efficient algorithm of the controller, can import a pre gene pool
         this.pool = prePool;
         System.out.println("START");
-        this.printOuterMonitor(0);
         for (int i = 0; i < generationLimit; i++) {
             System.out.println("GENERATION NUMBER: " + i);
             this.generatePoolWideCrossover();
             this.encounterCycle();
-            this.printOuterMonitor(i);
             this.selectNextGenerationRandomWithPressure();
             this.recordPool(this.pool);
 
         }
-        this.printOuterMonitor(generationLimit);
-        this.printOuterMonitorResults();
         this.printRecordPool();
-    }
-
-    public void lifeCycleFree(int generationLimit) {
-        //WARNING: NOT IN USE, specially, unlimited scope size, eliminates the under 0
-        this.initialize();
-        for (int i = 0; i < generationLimit; i++) {
-            this.generatePool();
-            this.encounterCycle();
-            System.out.println("NEXT LIFE************************************");
-            this.printTest();
-            this.selectNextGenerationWithMinimumAcceptance(0);
-        }
-        this.printTest();
-
     }
 
     public ArrayList<Strategy> getPool() {
@@ -561,22 +470,6 @@ public class PopulationController {
 
     public void setScoreTable(HashMap<Strategy, Integer> scoreTable) {
         this.scoreTable = scoreTable;
-    }
-
-    public TextArea getTextArea() {
-        return textArea;
-    }
-
-    public void setTextArea(TextArea textArea) {
-        this.textArea = textArea;
-    }
-
-    public TextArea getTextAreaResult() {
-        return textAreaResult;
-    }
-
-    public void setTextAreaResult(TextArea textAreaResult) {
-        this.textAreaResult = textAreaResult;
     }
 
 }

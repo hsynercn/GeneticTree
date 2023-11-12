@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
+/**
+ * Genetic tools and randomization for the genetic algorithm.
+ */
 public class PopulationController {
 
     //Genetic tools and randomization
@@ -26,9 +29,9 @@ public class PopulationController {
 
     private HashMap<String, Integer> populationRecorder = new HashMap<String, Integer>();
 
-    private FormulaUtility fUtility = new FormulaUtility();
+    private FormulaUtility formulaUtility = new FormulaUtility();
 
-    private Strategy tempStrgy = new Strategy();
+    private Strategy tempStrategy = new Strategy();
 
     private HashMap<Strategy, Integer> scoreTable = new HashMap<Strategy, Integer>();//scores of the strategies
 
@@ -41,11 +44,18 @@ public class PopulationController {
 
     }
 
+    /**
+     * Initializes the gene pool with random formulas/strategies.
+     */
     public void initialize() {
-        //random initialization
         this.scoreTable.clear();
         for (int i = 0; i < this.scopeSize; i++) {
-            FormulaElement formula = fUtility.randomGenerationWithDepth(tempStrgy.getVariableArrayList(), tempStrgy.getOperationsArrayList(), null, this.integerLimit, this.maxDepth, this.maxDepth);
+            FormulaElement formula = formulaUtility.randomGenerationWithDepth(tempStrategy.getVariableArrayList(),
+                    tempStrategy.getOperationsArrayList(),
+                    null,
+                    this.integerLimit,
+                    this.maxDepth,
+                    this.maxDepth);
             Strategy strategy = new Strategy(formula);
             this.pool.add(strategy);
             this.scoreTable.put(strategy, 0);
@@ -54,22 +64,21 @@ public class PopulationController {
     }
 
     private void resetScoreTable() {
-        for (Strategy key : this.scoreTable.keySet()) {
-            this.scoreTable.put(key, 0);
-
-        }
+        this.scoreTable.replaceAll((k, v) -> 0);
     }
 
+    /**
+     * Starts the game session between the strategies. Every strategy plays with every other strategy in the pool.
+     * Strategy also plays with itself.
+     */
     public void encounterCycle() {
-        //strategies plays the game
         Session session = new Session();
 
         this.resetScoreTable();
 
-        int result[] = new int[2];
-
         for (int i = 0; i < this.pool.size(); i++) {
             for (int j = i; j < this.pool.size(); j++) {
+                int[] result = new int[2];
                 if (i == j)//strategy playing with itself
                 {
                     Strategy copy = this.pool.get(i).safeCopy();
@@ -77,8 +86,8 @@ public class PopulationController {
                     this.scoreTable.put(this.pool.get(i), this.scoreTable.get(this.pool.get(i)) + result[0]);
                 } else {
                     if (this.pool.get(i) == this.pool.get(j)) {
-                        System.out.println("WARNING: PALYERS ARE SAME OBJECT");
                         //same objects in one session not logical and not wanted
+                        System.out.println("WARNING: PLAYERS ARE SAME OBJECT");
                     }
                     result = session.sessionStart(this.pool.get(i), this.pool.get(j), this.integerLimit);
                     this.scoreTable.put(this.pool.get(i), this.scoreTable.get(this.pool.get(i)) + result[0]);
@@ -97,7 +106,7 @@ public class PopulationController {
     }
 
     public ArrayList<Strategy> selectHighScores(int size, HashMap<Strategy, Integer> tablePar) {
-        //selects top n scores, not recommended
+        //selects top N scores, not recommended
         ArrayList<Strategy> selected = new ArrayList<Strategy>();
         int sort = size;
 
@@ -118,12 +127,16 @@ public class PopulationController {
             }
             tablePar.remove(tmpStrategy);
             selected.add(tmpStrategy);
-            System.out.println("NEW GENERATION: " + fUtility.getFormulaAsString(tmpStrategy.getStart()));
+            System.out.println("NEW GENERATION: " + formulaUtility.getFormulaAsString(tmpStrategy.getStart()));
 
         }
         return selected;
     }
 
+    /**
+     * Selects the highest scores to full scope, starts form score table's end.
+     * Lexicographic Parsimony Pressure: We want to minimize the size of the genetic load.
+     */
     public void selectNextGenerationWithPressure()//Lexicographic Parsimony Pressure
     {
         this.pool.clear();
@@ -133,8 +146,8 @@ public class PopulationController {
 
         this.scoreTable.clear();
 
-        for (int i = 0; i < this.pool.size(); i++) {
-            this.scoreTable.put(this.pool.get(i), this.pool.get(i).getStart().calculateDepth());
+        for (Strategy strategy : this.pool) {
+            this.scoreTable.put(strategy, strategy.getStart().calculateDepth());
         }
 
         this.pool.clear();
@@ -174,7 +187,7 @@ public class PopulationController {
         return totalScore;
     }
 
-    private void sortLisyViaScoreTable(ArrayList<Strategy> poolPar, HashMap<Strategy, Integer> tablePar) {
+    private void sortListViaScoreTable(ArrayList<Strategy> poolPar, HashMap<Strategy, Integer> tablePar) {
 
         System.out.println("SCORE SIZE" + tablePar.size());
 
@@ -196,14 +209,14 @@ public class PopulationController {
 
     public void selectNextGenerationRandomWithPressure()//Lexicographic Parsimony Pressure
     {
-        //random selection of top N scores via score percantage
+        //random selection of top N scores via score percentage
         System.out.println("SCORE SIZE" + this.scoreTable.size());
         Random random = new Random();
         ArrayList<Strategy> buffer = new ArrayList<Strategy>();
 
         int totalScore = this.calculateTotalScore(this.scoreTable);
 
-        this.sortLisyViaScoreTable(this.pool, this.scoreTable);
+        this.sortListViaScoreTable(this.pool, this.scoreTable);
 
         System.out.println("***********************SORTED:");
         this.printTest();
@@ -229,8 +242,8 @@ public class PopulationController {
         this.pool = buffer;
 
 
-        for (int i = 0; i < this.pool.size(); i++) {
-            this.scoreTable.put(this.pool.get(i), this.pool.get(i).getStart().calculateDepth());
+        for (Strategy strategy : this.pool) {
+            this.scoreTable.put(strategy, strategy.getStart().calculateDepth());
         }
         this.pool.clear();
 
@@ -282,16 +295,16 @@ public class PopulationController {
                 Strategy b = this.pool.get(j);
                 Strategy safeCopyB = b.safeCopy();
 
-                this.fUtility.crossover(safeCopyA.getStart(), safeCopyB.getStart());
+                this.formulaUtility.crossover(safeCopyA.getStart(), safeCopyB.getStart());
                 int mutateA = rand.nextInt(100);
                 int mutateB = rand.nextInt(100);
                 if (mutateA <= this.mutationChange) {
                     System.out.println("HAIL MUTATION");
-                    fUtility.mutation(safeCopyA.getStart(), this.tempStrgy.getVariableArrayList(), this.tempStrgy.getOperationsArrayList(), this.integerLimit);
+                    formulaUtility.mutation(safeCopyA.getStart(), this.tempStrategy.getVariableArrayList(), this.tempStrategy.getOperationsArrayList(), this.integerLimit);
                 }
                 if (mutateB <= this.mutationChange) {
                     System.out.println("HAIL MUTATION");
-                    fUtility.mutation(safeCopyB.getStart(), this.tempStrgy.getVariableArrayList(), this.tempStrgy.getOperationsArrayList(), this.integerLimit);
+                    formulaUtility.mutation(safeCopyB.getStart(), this.tempStrategy.getVariableArrayList(), this.tempStrategy.getOperationsArrayList(), this.integerLimit);
                 }
                 newPool.add(safeCopyB);
                 newPool.add(safeCopyA);
@@ -302,6 +315,10 @@ public class PopulationController {
         this.pool = newPool;
     }
 
+    /**
+     * Creates N*N sized gene pool, starts from root node of the formulas to crossover.
+     * NOTE: Most efficient algorithm of the controller.
+     */
     public void generatePoolWideCrossover() {
         //wide crossover means starts from root node of the formulas
         Random rand = new Random();
@@ -315,16 +332,14 @@ public class PopulationController {
                 Strategy b = this.pool.get(j);
                 Strategy safeCopyB = b.safeCopy();
 
-                this.fUtility.wideCrossover(safeCopyA.getStart(), safeCopyB.getStart());
+                this.formulaUtility.wideCrossover(safeCopyA.getStart(), safeCopyB.getStart());
                 int mutateA = rand.nextInt(100);
                 int mutateB = rand.nextInt(100);
                 if (mutateA <= this.mutationChange) {
-                    System.out.println("HAIL MUTATION");
-                    fUtility.mutation(safeCopyA.getStart(), this.tempStrgy.getVariableArrayList(), this.tempStrgy.getOperationsArrayList(), this.integerLimit);
+                    formulaUtility.mutation(safeCopyA.getStart(), this.tempStrategy.getVariableArrayList(), this.tempStrategy.getOperationsArrayList(), this.integerLimit);
                 }
                 if (mutateB <= this.mutationChange) {
-                    System.out.println("HAIL MUTATION");
-                    fUtility.mutation(safeCopyB.getStart(), this.tempStrgy.getVariableArrayList(), this.tempStrgy.getOperationsArrayList(), this.integerLimit);
+                    formulaUtility.mutation(safeCopyB.getStart(), this.tempStrategy.getVariableArrayList(), this.tempStrategy.getOperationsArrayList(), this.integerLimit);
                 }
                 newPool.add(safeCopyB);
                 newPool.add(safeCopyA);
@@ -337,10 +352,9 @@ public class PopulationController {
     }
 
     private void recordPool(ArrayList<Strategy> poolPar) {
-        for (int i = 0; i < poolPar.size(); i++) {
-            String formulaString = fUtility.getFormulaAsString(poolPar.get(i).getStart());
+        for (Strategy strategy : poolPar) {
+            String formulaString = formulaUtility.getFormulaAsString(strategy.getStart());
             if (this.populationRecorder.get(formulaString) == null) {
-
                 this.populationRecorder.put(formulaString, 1);
             } else {
                 this.populationRecorder.put(formulaString, this.populationRecorder.get(formulaString) + 1);
@@ -362,8 +376,8 @@ public class PopulationController {
                 this.textArea.append("\nGENERATION: " + iterationNumber + "\n");
             else
                 this.textArea.append("\nSORTED:\n");
-            for (int i = 0; i < this.pool.size(); i++) {
-                this.textArea.append("DEPTH " + this.pool.get(i).calculateMaxDepth() + " SCORE: " + this.scoreTable.get(this.pool.get(i)) + " " + fUtility.getFormulaAsString(this.pool.get(i).getStart()) + "\n");
+            for (Strategy strategy : this.pool) {
+                this.textArea.append("DEPTH " + strategy.calculateMaxDepth() + " SCORE: " + this.scoreTable.get(strategy) + " " + formulaUtility.getFormulaAsString(strategy.getStart()) + "\n");
             }
         }
     }
@@ -378,8 +392,8 @@ public class PopulationController {
     }
 
     public void printTest() {
-        for (int i = 0; i < this.pool.size(); i++) {
-            System.out.println("DEPTH " + this.pool.get(i).calculateMaxDepth() + " SCORE: " + this.scoreTable.get(this.pool.get(i)) + " " + fUtility.getFormulaAsString(this.pool.get(i).getStart()));
+        for (Strategy strategy : this.pool) {
+            System.out.println("DEPTH " + strategy.calculateMaxDepth() + " SCORE: " + this.scoreTable.get(strategy) + " " + formulaUtility.getFormulaAsString(strategy.getStart()));
         }
     }
 
@@ -440,7 +454,9 @@ public class PopulationController {
 
             this.printTest();
             this.printOuterMonitor(i);
-            this.selectNextGenerationRandomWithPressure();//seelction
+
+            //selection
+            this.selectNextGenerationRandomWithPressure();
             this.recordPool(this.pool);
 
         }
@@ -523,20 +539,20 @@ public class PopulationController {
         this.maxDepth = maxDepth;
     }
 
-    public FormulaUtility getfUtility() {
-        return fUtility;
+    public FormulaUtility getFormulaUtility() {
+        return formulaUtility;
     }
 
-    public void setfUtility(FormulaUtility fUtility) {
-        this.fUtility = fUtility;
+    public void setFormulaUtility(FormulaUtility formulaUtility) {
+        this.formulaUtility = formulaUtility;
     }
 
-    public Strategy getTempStrgy() {
-        return tempStrgy;
+    public Strategy getTempStrategy() {
+        return tempStrategy;
     }
 
-    public void setTempStrgy(Strategy tempStrgy) {
-        this.tempStrgy = tempStrgy;
+    public void setTempStrategy(Strategy tempStrategy) {
+        this.tempStrategy = tempStrategy;
     }
 
     public HashMap<Strategy, Integer> getScoreTable() {
@@ -562,6 +578,5 @@ public class PopulationController {
     public void setTextAreaResult(TextArea textAreaResult) {
         this.textAreaResult = textAreaResult;
     }
-
 
 }

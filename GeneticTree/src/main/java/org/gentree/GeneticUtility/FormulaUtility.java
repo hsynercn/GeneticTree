@@ -38,7 +38,6 @@ public class FormulaUtility {
             }
         }
 
-        //FormulaElement start = new FormulaElement(null, null, null);
         return start;
     }
 
@@ -48,10 +47,6 @@ public class FormulaUtility {
 
         FormulaElement pointA = this.findCrossoverPointWide(formulaA);
         FormulaElement pointB = this.findCrossoverPointWide(formulaB);
-		/*System.out.println("A "+pointA.getElement());
-		System.out.println("B "+pointB.getElement());
-		System.out.println(this.getFormulaAsString(pointA));
-		System.out.println(this.getFormulaAsString(pointB));*/
 
         FormulaElement tmp;
 
